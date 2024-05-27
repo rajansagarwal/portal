@@ -25,26 +25,17 @@ class SearchEngine:
             self.text_data = new_data
     
     def query(self, query_text: str) -> list[int]:
-        # Embed the query text into a vector using the embeddings model
-        query_vector = self.embeddings_model.embed([query_text])[0]  # Assuming embed returns a list of vectors
+        query_vector = self.embeddings_model.embed([query_text])[0]
 
-        # Retrieve the number of features from the data array
         num_features = self.data.shape[1]
-
-        # Create an Annoy index for searching in angular space
         annoy_index = AnnoyIndex(num_features, 'angular')
 
-        # Add all data vectors to the Annoy index
         for index, data_vector in enumerate(self.data):
             annoy_index.add_item(index, data_vector)
 
-        # Build the Annoy index with 10 trees for better query performance
         annoy_index.build(10)
-
-        # Find the 100 nearest neighbors to the query vector
         nearest_neighbors = annoy_index.get_nns_by_vector(query_vector, 100, include_distances=False)
         
-        # Print the nearest neighbors indices
         print(nearest_neighbors)
 
         return nearest_neighbors

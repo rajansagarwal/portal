@@ -3,7 +3,6 @@ from PIL import Image
 from transformers import BlipProcessor, BlipForConditionalGeneration
 
 class PhotoEngine:
-    #model_name: "default" gives the default engine
     def __init__(self, model_name: str):
         if (model_name == "default"):
             self.processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
@@ -22,6 +21,6 @@ class PhotoEngine:
 
 # Example Usage
 
-engine = VideoEngine("default")
+engine = PhotoEngine("default")
 opened_image = engine.open_image("https://z.rajan.sh/robot.jpg")
 print(engine.describe_image(opened_image))
