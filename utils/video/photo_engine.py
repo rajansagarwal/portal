@@ -21,6 +21,6 @@ class PhotoEngine:
 
 # Example Usage
 
-engine = PhotoEngine("default")
-opened_image = engine.open_image("https://z.rajan.sh/robot.jpg")
-print(engine.describe_image(opened_image))
+# engine = PhotoEngine("default")
+# opened_image = engine.open_image("https://z.rajan.sh/robot.jpg")
+# print(engine.describe_image(opened_image))

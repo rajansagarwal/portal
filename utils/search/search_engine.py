@@ -49,8 +49,8 @@ class SearchEngine:
     
 # Example Usage
 
-search_engine = SearchEngine(["hello world", "hello rajan"])
-print(search_engine.data)
-search_engine.add_data(["Cats and dogs are super cool", "Rajan is the coolest guy"])
-nearest_neighbours = search_engine.query("rajan is super cool")
-print(search_engine.query_text_results(nearest_neighbours))
+# search_engine = SearchEngine(["hello world", "hello rajan"])
+# print(search_engine.data)
+# search_engine.add_data(["Cats and dogs are super cool", "Rajan is the coolest guy"])
+# nearest_neighbours = search_engine.query("rajan is super cool")
+# print(search_engine.query_text_results(nearest_neighbours))
