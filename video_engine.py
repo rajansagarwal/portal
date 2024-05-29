@@ -56,7 +56,6 @@ class VideoSearchEngine:
         audio_transcriptions = []
         video_filenames = []
 
-        # Process each frame to extract and save video fragments
         for frame_number, frame in frames:
             description = self.photo_engine.describe_image(frame)
             frame_descriptions.append(description)
@@ -73,7 +72,6 @@ class VideoSearchEngine:
                 print(f"Video fragment saved: {video_filename}")
                 video_filenames.append(video_filename)
 
-                # Temporarily extract audio for transcription without saving it
                 with tempfile.NamedTemporaryFile(suffix='.wav', delete=True) as temp_audio_file:
                     video_fragment.audio.write_audiofile(temp_audio_file.name)
                     try:
