@@ -4,3 +4,7 @@ venv/
 __pycache__/
 
 *mp4
+*wav
+*csv
+
+videos/

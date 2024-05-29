@@ -7,18 +7,24 @@ class AudioEngine:
         self.torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
         self.model = AutoModelForSpeechSeq2Seq.from_pretrained(
-            "openai/whisper-small", torch_dtype=self.torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
+            "openai/whisper-medium", torch_dtype=self.torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
         )
         self.model.to("cpu")
 
-        self.processor = AutoProcessor.from_pretrained("openai/whisper-small")
+        self.processor = AutoProcessor.from_pretrained("openai/whisper-medium")
+        
+        self.language = "en"
+        self.task = "transcribe"
 
+        self.forced_decoder_ids = self.processor.get_decoder_prompt_ids(language=self.language, task=self.task)
+        
         self.pipe = pipeline(
             "automatic-speech-recognition",
             model=self.model,
             tokenizer=self.processor.tokenizer,
             feature_extractor=self.processor.feature_extractor,
             max_new_tokens=128,
+            generate_kwargs={"forced_decoder_ids": self.forced_decoder_ids},
             chunk_length_s=30,
             batch_size=16,
             return_timestamps=True,
