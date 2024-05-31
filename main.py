@@ -5,8 +5,9 @@ from video_engine import VideoSearchEngine
 app = Flask(__name__)
 CORS(app)
 engine = VideoSearchEngine()
+engine.process_all_videos("input")
 
-@app.route('/search', methods=['POST'])
+@app.route('/search', methods=['POST', 'GET'])
 def search():
     try:
         query = request.json['query']
@@ -16,6 +17,7 @@ def search():
             'audio_results': audio_results
         })
     except Exception as e:
+        print(e)
         return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":

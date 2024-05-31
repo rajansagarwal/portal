@@ -11,7 +11,7 @@ from utils.audio.audio_engine import AudioEngine
 from utils.video.photo_engine import PhotoEngine
 from utils.embeddings.embeddings_engine import EmbeddingsEngine
 from utils.clustering.clustering_engine import ClusteringEngine
-from utils.search.search_engine import SearchEngine
+# from utils.search.search_engine import SearchEngine
 from utils.summarization.summary_engine import SummaryEngine
 
 class VideoSearchEngine:
@@ -22,8 +22,8 @@ class VideoSearchEngine:
         self.photo_engine = PhotoEngine("default")
         print("Initializing Embeddings Engine")
         self.embeddings_engine = EmbeddingsEngine("default")
-        print("Initializing Search Engine")
-        self.search_engine = SearchEngine(data=[])
+        # print("Initializing Search Engine")
+        # self.search_engine = SearchEngine(data=[])
         print("Initializing Summary Engine")
         self.summary_engine = SummaryEngine()
         print("Initializing Clustering Engine")
