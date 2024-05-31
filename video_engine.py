@@ -26,7 +26,7 @@ class VideoSearchEngine:
         print("Initializing Summary Engine")
         self.summary_engine = SummaryEngine()
         print("Initializing Clustering Engine")
-        self.classifier = ClustseringEngine(threshold=0.6)
+        self.classifier = ClustseringEngine(threshold=0.75)
 
         self.video_fragments_dir = "store"
         self.interval = 900
