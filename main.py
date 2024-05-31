@@ -3,7 +3,7 @@ from flask_cors import CORS
 from video_engine import VideoSearchEngine
 
 app = Flask(__name__)
-CORS(app)  # This enables CORS for all routes and all origins by default.
+CORS(app)
 engine = VideoSearchEngine()
 
 @app.route('/search', methods=['POST'])
