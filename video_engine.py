@@ -1,9 +1,11 @@
-# import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+import pandas as pd
+
 import os
 import cv2
 from moviepy.editor import VideoFileClip
 import tempfile
-import pandas as pd
 
 from utils.audio.audio_engine import AudioEngine
 from utils.video.photo_engine import PhotoEngine
@@ -122,3 +124,42 @@ class VideoSearchEngine:
         else:
             df.to_csv(self.csv_filename, index=False)
         print(f"Data appended to CSV for {video_id}.")
+    
+    def search(self, query_text):
+        if not os.path.exists(self.csv_filename):
+            print("No data available for search.")
+            return [], []
+        
+        df = pd.read_csv(self.csv_filename)
+        query_embedding = self.embeddings_engine.embed(query_text)
+        
+        frame_embeddings = [self.embeddings_engine.embed(desc) for desc in df['Frame Description']]
+        audio_embeddings = [self.embeddings_engine.embed(trans) for trans in df['Audio Transcription']]
+        
+        visual_similarities = [cosine_similarity([query_embedding], [emb])[0][0] for emb in frame_embeddings]
+        audio_similarities = [cosine_similarity([query_embedding], [emb])[0][0] for emb in audio_embeddings]
+        
+        visual_indices = np.argpartition(visual_similarities, -2)[-2:]
+        audio_indices = np.argpartition(audio_similarities, -2)[-2:]
+        
+
+        top_visual_results = df.iloc[visual_indices].to_dict('records')
+        top_audio_results = df.iloc[audio_indices].to_dict('records')
+        
+        return top_visual_results, top_audio_results
+
+# engine = VideoSearchEngine()
+# engine.process_all_videos("input")
+
+# query = "knowledge graphs"
+# visual_results, audio_results = engine.search(query)
+
+# print("Visual Results:")
+# for result in visual_results:
+#     print(result)
+#     print()
+
+# print("Audio Results:")
+# for result in audio_results:
+#     print(result)
+#     print()
