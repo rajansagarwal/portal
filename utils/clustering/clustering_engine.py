@@ -2,9 +2,9 @@ from sentence_transformers import SentenceTransformer, util
 import numpy as np
 from utils.embeddings.embeddings_engine import EmbeddingsEngine
 
-class ClustseringEngine:
-    def __init__(self, threshold=0.7):
-        self.embeddings_engine = EmbeddingsEngine("default")
+class ClusteringEngine:
+    def __init__(self, embeddings_engine, threshold=0.7):
+        self.embeddings_engine = embeddings_engine
         self.events = []
         self.event_embeddings = []
         self.threshold = threshold
@@ -12,7 +12,6 @@ class ClustseringEngine:
     def add_event_description(self, description: str):
         new_embedding = self.embeddings_engine.embed([description])[0]
         
-        # Check if there are already some events to compare with
         if self.event_embeddings:
             # Calculate similarity with existing event embeddings
             similarities = [util.cos_sim(new_embedding, emb)[0][0] for emb in self.event_embeddings]
