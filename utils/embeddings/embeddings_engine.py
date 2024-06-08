@@ -10,6 +10,12 @@ class EmbeddingsEngine:
         else:
             self.model =  SentenceTransformer(model_name, trust_remote_code=True)
 
+        # To be implemented
+        # self.text_tokenizer = AutoTokenizer.from_pretrained('nomic-ai/nomic-embed-text-v1.5')
+        # self.text_model = AutoModel.from_pretrained('nomic-ai/nomic-embed-text-v1.5', trust_remote_code=True)
+        # self.vision_processor = AutoImageProcessor.from_pretrained("nomic-ai/nomic-embed-vision-v1.5")
+        # self.vision_model = AutoModel.from_pretrained("nomic-ai/nomic-embed-vision-v1.5", trust_remote_code=True)
+
     def embed (self, sentences: list[str]) -> list[numpy.ndarray]:
         embeddings = self.model.encode(sentences)
         # print(type(embeddings))
