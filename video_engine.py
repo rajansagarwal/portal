@@ -13,6 +13,7 @@ from utils.embeddings.embeddings_engine import EmbeddingsEngine
 from utils.clustering.clustering_engine import ClusteringEngine
 # from utils.search.search_engine import SearchEngine
 from utils.summarization.summary_engine import SummaryEngine
+from utils.search.chroma_search_engine import ChromaSearchEngine
 
 class VideoSearchEngine:
     def __init__(self):
@@ -28,6 +29,8 @@ class VideoSearchEngine:
         self.summary_engine = SummaryEngine()
         print("Initializing Clustering Engine")
         self.classifier = ClusteringEngine(embeddings_engine=self.embeddings_engine, threshold=0.75)
+        print("Initializing Chroma Search Engine")
+        self.chroma_search_engine = ChromaSearchEngine()
 
         self.video_fragments_dir = "store"
         os.makedirs(self.video_fragments_dir, exist_ok=True)
@@ -125,41 +128,43 @@ class VideoSearchEngine:
             df.to_csv(self.csv_filename, index=False)
         print(f"Data appended to CSV for {video_id}.")
     
-    def search(self, query_text):
-        if not os.path.exists(self.csv_filename):
-            print("No data available for search.")
-            return [], []
+    def search(self, query_text, user):
         
+        top_visual_results = self.chroma_search_engine.query_data_by_type(query_text, user, "frame")
+        top_audio_results = self.chroma_search_engine.query_data_by_type(query_text, user, "audio")["documents"][0]
+        top_summary_results = self.chroma_search_engine.query_data_by_type(query_text, user, "summary")["documents"][0]
+        
+        return top_visual_results, top_audio_results, top_summary_results
+
+    def load_csv_data (self):
         df = pd.read_csv(self.csv_filename)
-        query_embedding = self.embeddings_engine.embed(query_text)
+        #df.drop(["Frame Index", "Video ID"])
+        print("Creating client")
+        self.chroma_search_engine.create_client()
+        print("Creating collection")
+        self.chroma_search_engine.create_collection("new_collection")
+        dictionaries = []
+        for index, row in df.iterrows():
+            dictionary = {}
+            dictionary["audio_description"] = row["Audio Transcription"] 
+            dictionary["frame_description"] = row["Frame Description"]
+            dictionary["summary"] = row["Summary"]
+            dictionary["id"] = row["Video Filename"]
+            dictionaries.append(dictionary)
+        self.chroma_search_engine.add_data(dictionaries)
+        #print(dictionaries)
         
-        frame_embeddings = [self.embeddings_engine.embed(desc) for desc in df['Frame Description']]
-        audio_embeddings = [self.embeddings_engine.embed(trans) for trans in df['Audio Transcription']]
-        
-        visual_similarities = [cosine_similarity([query_embedding], [emb])[0][0] for emb in frame_embeddings]
-        audio_similarities = [cosine_similarity([query_embedding], [emb])[0][0] for emb in audio_embeddings]
-        
-        visual_indices = np.argpartition(visual_similarities, -2)[-2:]
-        audio_indices = np.argpartition(audio_similarities, -2)[-2:]
-        
-
-        top_visual_results = df.iloc[visual_indices].to_dict('records')
-        top_audio_results = df.iloc[audio_indices].to_dict('records')
-        
-        return top_visual_results, top_audio_results
-
-# engine = VideoSearchEngine()
-# engine.process_all_videos("input")
-
-# query = "knowledge graphs"
-# visual_results, audio_results = engine.search(query)
+engine = VideoSearchEngine()
+engine.load_csv_data()
+query = "knowledge graphs"
+visual_results, audio_results, summary_results = engine.search(query)
+print (visual_results)
 
 # print("Visual Results:")
 # for result in visual_results:
 #     print(result)
 #     print()
 
-# print("Audio Results:")
-# for result in audio_results:
-#     print(result)
-#     print()
+# engine=VideoSearchEngine()
+# engine.load_csv_data()
+# print(engine.search("connectsci"))
