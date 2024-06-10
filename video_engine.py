@@ -79,7 +79,7 @@ class VideoSearchEngine:
             print(f"PROCESSING {video_path} FRAME at {seconds} seconds")
             description = self.photo_engine.describe_image(frame)
 
-            start_tim  e = seconds
+            start_time = seconds
             duration = self.interval
             end_time = min(start_time + duration, video_clip.duration)
 
