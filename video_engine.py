@@ -11,9 +11,8 @@ from utils.audio.audio_engine import AudioEngine
 from utils.video.photo_engine import PhotoEngine
 from utils.embeddings.embeddings_engine import EmbeddingsEngine
 from utils.clustering.clustering_engine import ClusteringEngine
-# from utils.search.search_engine import SearchEngine
 from utils.summarization.summary_engine import SummaryEngine
-from utils.search.chroma_search_engine import ChromaSearchEngine
+from utils.search.search_engine import SearchEngine
 
 class VideoSearchEngine:
     def __init__(self):
@@ -30,7 +29,7 @@ class VideoSearchEngine:
         print("Initializing Clustering Engine")
         self.classifier = ClusteringEngine(embeddings_engine=self.embeddings_engine, threshold=0.75)
         print("Initializing Chroma Search Engine")
-        self.chroma_search_engine = ChromaSearchEngine()
+        self.search_engine = SearchEngine()
 
         self.video_fragments_dir = "store"
         os.makedirs(self.video_fragments_dir, exist_ok=True)
@@ -38,13 +37,6 @@ class VideoSearchEngine:
         self.csv_filename = "extracted.csv"
         self.load_existing_videos()
 
-    def load_existing_videos(self):
-        if os.path.exists(self.csv_filename):
-            df = pd.read_csv(self.csv_filename)
-            video_ids = df['Video ID'].tolist()
-            self.existing_videos = {video_id: 1 for video_id in video_ids}
-        else:
-            self.existing_videos = {}
 
     def extract_frames(self, video_path, interval, fps):
         print("Extracting Frames")
@@ -87,7 +79,7 @@ class VideoSearchEngine:
             print(f"PROCESSING {video_path} FRAME at {seconds} seconds")
             description = self.photo_engine.describe_image(frame)
 
-            start_time = seconds
+            start_tim  e = seconds
             duration = self.interval
             end_time = min(start_time + duration, video_clip.duration)
 
@@ -113,58 +105,11 @@ class VideoSearchEngine:
                     print(f"Skipping already processed video: {video_path}")
                     return
 
-    def save_to_csv(self, video_id, frame_indices, frame_descriptions, audio_transcriptions, video_filenames, summaries):
-        df = pd.DataFrame({
-            'Video ID': [video_id] * len(frame_indices),
-            'Frame Index': frame_indices,
-            'Frame Description': frame_descriptions,
-            'Audio Transcription': audio_transcriptions,
-            'Video Filename': video_filenames,
-            'Summary': summaries
-        })
-        if os.path.exists(self.csv_filename):
-            df.to_csv(self.csv_filename, mode='a', header=False, index=False)
-        else:
-            df.to_csv(self.csv_filename, index=False)
-        print(f"Data appended to CSV for {video_id}.")
     
-    def search(self, query_text, user):
-        
-        top_visual_results = self.chroma_search_engine.query_data_by_type(query_text, user, "frame")
-        top_audio_results = self.chroma_search_engine.query_data_by_type(query_text, user, "audio")["documents"][0]
-        top_summary_results = self.chroma_search_engine.query_data_by_type(query_text, user, "summary")["documents"][0]
+    def search(self, query_text):
+
+        top_visual_results = self.search_engine.query(query_text, "frame")
+        top_audio_results = self.search_engine.query(query_text, "audio")
+        top_summary_results = self.search_engine.query(query_text, "summary")
         
         return top_visual_results, top_audio_results, top_summary_results
-
-    def load_csv_data (self):
-        df = pd.read_csv(self.csv_filename)
-        #df.drop(["Frame Index", "Video ID"])
-        print("Creating client")
-        self.chroma_search_engine.create_client()
-        print("Creating collection")
-        self.chroma_search_engine.create_collection("new_collection")
-        dictionaries = []
-        for index, row in df.iterrows():
-            dictionary = {}
-            dictionary["audio_description"] = row["Audio Transcription"] 
-            dictionary["frame_description"] = row["Frame Description"]
-            dictionary["summary"] = row["Summary"]
-            dictionary["id"] = row["Video Filename"]
-            dictionaries.append(dictionary)
-        self.chroma_search_engine.add_data(dictionaries)
-        #print(dictionaries)
-        
-engine = VideoSearchEngine()
-engine.load_csv_data()
-query = "knowledge graphs"
-visual_results, audio_results, summary_results = engine.search(query)
-print (visual_results)
-
-# print("Visual Results:")
-# for result in visual_results:
-#     print(result)
-#     print()
-
-# engine=VideoSearchEngine()
-# engine.load_csv_data()
-# print(engine.search("connectsci"))

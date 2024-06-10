@@ -5,19 +5,16 @@ from video_engine import VideoSearchEngine
 app = Flask(__name__)
 CORS(app)
 engine = VideoSearchEngine()
-engine.load_csv_data()
 
 @app.route('/search', methods=['POST', 'GET'])
 def search():
     try:
         query = request.json['query']
-        user = request.json['user']
-        visual_results, audio_results, summary_results, video_ids, video_filepaths = engine.search(query, user)
+        visual_results, audio_results, summary_results, video_ids, video_filepaths = engine.search(query)
         return jsonify({
             'visual_results': visual_results,
             'audio_results': audio_results,
-            'summary_results': summary_results,
-            'video_filepaths': video_filepaths
+            'summary_results': summary_results
         })
     except Exception as e:
         print(e)
