@@ -30,26 +30,19 @@ class SearchEngine:
     def create_collection(self, collection_name:str):
         self.collection = self.client.create_collection(name=collection_name, metadata={"hnsw:space": "cosine"})
 
-    def add(self, type_entry, text, filepath):
+    def add(self, text, filepath):
         embedding = self.embeddings_model.embed(text).tolist()
-        id_string = f"{filepath}_{type_entry}"
+        id_string = f"{filepath}"
         self.collection.add(
             documents=[text],
             embeddings=[embedding],
             ids=[id_string],
-            metadatas=[{"type" : type_entry, "filepath": filepath}]
+            metadatas=[{"filepath": filepath}]
         )
     
-    def query(self, query_string, type:str=""):
+    def query(self, query_string):
         embedding = self.embeddings_model.embed(query_string).tolist()
         if type != "":
-            results = self.collection.query(
-                query_embeddings=[embedding],
-                include=["documents", "metadatas"],
-                where={"type": {"$eq": type}},
-                n_results=3
-            )
-        else:
             results = self.collection.query(
                 query_embeddings=[embedding],
                 include=["documents", "metadatas"],
@@ -62,3 +55,7 @@ class SearchEngine:
 
     def delete_collection(self, collection_name):
         self.client.delete_collection(name=collection_name)
+
+
+engine = SearchEngine("test")
+print(engine.query("someone can surely hear me, right?"))
