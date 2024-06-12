@@ -1,7 +1,6 @@
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import pandas as pd
-
 import os
 import cv2
 from moviepy.editor import VideoFileClip
@@ -22,12 +21,8 @@ class VideoSearchEngine:
         self.photo_engine = PhotoEngine("default")
         print("Initializing Embeddings Engine")
         self.embeddings_engine = EmbeddingsEngine("default")
-        # print("Initializing Search Engine")
-        # self.search_engine = SearchEngine(data=[])
         print("Initializing Summary Engine")
         self.summary_engine = SummaryEngine()
-        print("Initializing Clustering Engine")
-        self.classifier = ClusteringEngine(embeddings_engine=self.embeddings_engine, threshold=0.75)
         print("Initializing Chroma Search Engine")
         self.search_engine = SearchEngine()
 
@@ -37,6 +32,13 @@ class VideoSearchEngine:
         self.csv_filename = "extracted.csv"
         self.load_existing_videos()
 
+    def load_existing_videos(self):
+        if os.path.exists(self.csv_filename):
+            df = pd.read_csv(self.csv_filename)
+            video_ids = df['Video ID'].tolist()
+            self.existing_videos = {video_id: 1 for video_id in video_ids}
+        else:
+            self.existing_videos = {}
 
     def extract_frames(self, video_path, interval, fps):
         print("Extracting Frames")
@@ -72,13 +74,11 @@ class VideoSearchEngine:
 
         video_clip = VideoFileClip(compressed_video_path)
         fps = video_clip.fps
-
         frames = self.extract_frames(compressed_video_path, self.interval, fps)
 
         for seconds, frame in frames:
             print(f"PROCESSING {video_path} FRAME at {seconds} seconds")
             description = self.photo_engine.describe_image(frame)
-
             start_time = seconds
             duration = self.interval
             end_time = min(start_time + duration, video_clip.duration)
@@ -93,8 +93,11 @@ class VideoSearchEngine:
                     transcription = self.audio_engine.transcribe(temp_audio_file.name)
                     summary = self.summary_engine.summarize(transcription)
 
+                concatenated_description = f"{description} {summary}"
+                # embedding = self.embeddings_engine.embed(concatenated_description)
+                self.search_engine.add(concatenated_description, description, transcription, summary, fragment_filename)
                 self.save_to_csv(compressed_video_path, [seconds], [description], [transcription], [fragment_filename], [summary[0]['summary_text']])
-        
+
     def process_all_videos(self, directory_path):
         for filename in os.listdir(directory_path):
             if filename.endswith(".mp4"):
@@ -103,13 +106,27 @@ class VideoSearchEngine:
                     self.process_video(video_path)
                 else:
                     print(f"Skipping already processed video: {video_path}")
-                    return
+                
+    def save_to_csv(self, video_id, frame_indices, frame_descriptions, audio_transcriptions, video_filenames, summaries):
+        df = pd.DataFrame({
+            'Video ID': [video_id] * len(frame_indices),
+            'Frame Index': frame_indices,
+            'Frame Description': frame_descriptions,
+            'Audio Transcription': audio_transcriptions,
+            'Video Filename': video_filenames,
+            'Summary': summaries
+        })
+        if os.path.exists(self.csv_filename):
+            df.to_csv(self.csv_filename, mode='a', header=False, index=False)
+        else:
+            df.to_csv(self.csv_filename, index=False)
+        print(f"Data appended to CSV for {video_id}.")
 
-    
     def search(self, query_text):
+        results = self.search_engine.query(query_text, "text")
+        return results
 
-        top_visual_results = self.search_engine.query(query_text, "frame")
-        top_audio_results = self.search_engine.query(query_text, "audio")
-        top_summary_results = self.search_engine.query(query_text, "summary")
-        
-        return top_visual_results, top_audio_results, top_summary_results
+engine = VideoSearchEngine()
+engine.process_all_videos("input")
+results = engine.search("knowledge graphs")
+print(results)

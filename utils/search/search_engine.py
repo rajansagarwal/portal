@@ -11,8 +11,6 @@ sys.path.append(root_dir)
 from utils.embeddings.embeddings_engine import EmbeddingsEngine
 from utils.reranking.reranker import Reranker
 
-
-
 class SearchEngine:
 
     def __init__(self, collection_name="portal_db"):
@@ -30,19 +28,20 @@ class SearchEngine:
     def create_collection(self, collection_name:str):
         self.collection = self.client.create_collection(name=collection_name, metadata={"hnsw:space": "cosine"})
 
-    def add(self, text, filepath):
-        embedding = self.embeddings_model.embed(text).tolist()
+    def add(self, concatenated, description, transcription, summary, filepath):
+        embedding = self.embeddings_model.embed(concatenated).tolist()
         id_string = f"{filepath}"
         self.collection.add(
-            documents=[text],
+            documents=[concatenated],
             embeddings=[embedding],
-            ids=[id_string],
+            ids=[f"{filepath}"],
             metadatas=[{"filepath": filepath}]
         )
     
-    def query(self, query_string):
+    def query(self, query_string, query_type):
         embedding = self.embeddings_model.embed(query_string).tolist()
-        if type != "":
+
+        if query_type != "":
             results = self.collection.query(
                 query_embeddings=[embedding],
                 include=["documents", "metadatas"],
@@ -56,6 +55,6 @@ class SearchEngine:
     def delete_collection(self, collection_name):
         self.client.delete_collection(name=collection_name)
 
-
-engine = SearchEngine("test")
-print(engine.query("someone can surely hear me, right?"))
+# engine = SearchEngine()
+# engine.add("knowledge graph", "hi.mp4")
+# print(engine.query("knowledge graph", "text"))
