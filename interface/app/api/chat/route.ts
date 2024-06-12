@@ -16,14 +16,14 @@ export async function POST(req: Request) {
     body: JSON.stringify({ query: userMessage }),
   });
   // @ts-ignore
-  const { audio_results } = await apiResponse.json();
+  const { results } = await apiResponse.json();
 
-  const topResults = audio_results.slice(0, 2);
+  const topResults = Object.entries(results).slice(0, 3);
 
   // @ts-ignore
-  const audioContext = topResults.map((result, index) => ({
+  const audioContext = topResults.map(([filename, summary], index) => ({
     role: "system",
-    content: `Audio Reference: ${result["Video Filename"]} ${result.Summary} Visual: ${result["Frame Description"]}`,
+    content: `Reference: ${filename} Content: ${summary}}`,
   }));
 
   // Prepare prompt for AI to use context in its answer
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       {
         role: "system",
         content:
-          "Please answer the question using the referenced summaries, cited as [citation number in increasing order](file name). You are a helpful assistant with access to key parts and references into my life. Answer as a chatbot that's friendly and sometimes asks questions, if it is needed. Make inferences if needed. Always use at least one source. At the end, give a list of 2 short follow up questions, phrased in the style of the user's previous questions",
+          "Please answer the question using the referenced summaries, cited as [citation number in increasing order](file name). You are a helpful assistant with access to key parts and references into my life. Answer as a chatbot that's friendly and sometimes asks questions, if it is needed. Make inferences if needed. Always add a lot of detail. Always use at least one source. At the end, give a list of a short follow up question, phrased in the style of the user's previous questions",
       },
       { role: "user", content: userMessage },
     ],
