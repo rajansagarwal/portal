@@ -28,13 +28,13 @@ class SearchEngine:
     def create_collection(self, collection_name:str):
         self.collection = self.client.create_collection(name=collection_name, metadata={"hnsw:space": "cosine"})
 
-    def add(self, concatenated, description, transcription, summary, filepath):
+    def add(self, concatenated, timestamp, filepath):
         embedding = self.embeddings_model.embed(concatenated).tolist()
-        id_string = f"{filepath}"
+        id_string = f"{filepath}::{timestamp}"
         self.collection.add(
             documents=[concatenated],
             embeddings=[embedding],
-            ids=[f"{filepath}"],
+            ids=[f"{id_string}"],
             metadatas=[{"filepath": filepath}]
         )
     
@@ -49,12 +49,15 @@ class SearchEngine:
             )
         cleaned_results = {}
         for i in range (len(results["ids"][0])):
-            cleaned_results[results["metadatas"][0][i]["filepath"]] = results["documents"][0][i] 
+            cleaned_results[results["ids"][0][i]] = results["documents"][0][i] 
         return cleaned_results
 
     def delete_collection(self, collection_name):
         self.client.delete_collection(name=collection_name)
+        print("Deleted Collection Successfully")
 
-# engine = SearchEngine()
-# engine.add("knowledge graph", "hi.mp4")
-# print(engine.query("knowledge graph", "text"))
+    def exists_in_collection(self, video_id):
+        document = self.collection.get(ids=[video_id])
+        print(document)
+        return document.get('documents') is not None
+
