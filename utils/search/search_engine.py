@@ -59,5 +59,5 @@ class SearchEngine:
     def exists_in_collection(self, video_id):
         document = self.collection.get(ids=[video_id])
         print(document)
-        return document.get('documents') is not None
+        return document.get('documents') is not []
 

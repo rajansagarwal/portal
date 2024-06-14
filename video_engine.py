@@ -12,6 +12,8 @@ from utils.embeddings.embeddings_engine import EmbeddingsEngine
 from utils.clustering.clustering_engine import ClusteringEngine
 from utils.summarization.summary_engine import SummaryEngine
 from utils.search.search_engine import SearchEngine
+from PIL import Image
+
 class VideoSearchEngine:
     def __init__(self):
         print("Initializing Audio Engine")
@@ -30,7 +32,6 @@ class VideoSearchEngine:
         self.interval = 60
         self.csv_filename = "extracted.csv"
         self.load_existing_videos()
-        
 
     def load_existing_videos(self):
         if os.path.exists(self.csv_filename):
@@ -83,17 +84,22 @@ class VideoSearchEngine:
                 concatenated_description = f"{description} {summary}"
                 self.search_engine.add(concatenated_description, seconds, video_path)
 
-    def process_all_videos(self, directory_path):
-        for filename in os.listdir(directory_path):
-            if filename.endswith(".mp4"):
-                video_path = os.path.join(directory_path, filename)
-                self.process_video(video_path)
+    def process_image(self, image_path):
+        with Image.open(image_path) as img:
+            description = self.photo_engine.describe_image(img)
+            self.search_engine.add(description, 0, image_path)
+
+    def process_all_files(self, directory_path):
+        for root, dirs, files in os.walk(directory_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                if file_path.endswith(".mp4"):
+                    self.process_video(file_path)
+                elif file_path.lower().endswith((".jpg", ".jpeg", ".png")):
+                    self.process_image(file_path)
+                else:
+                    print(f"Skipping unsupported file type: {file_path}")
 
     def search(self, query_text):
         results = self.search_engine.query(query_text, "text")
         return results
-
-# engine = VideoSearchEngine()
-# engine.process_all_videos("input")
-# results = engine.search("knowledge graphs")
-# print(results)

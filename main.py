@@ -8,7 +8,9 @@ print("INITIALIZING CORS")
 CORS(app)
 print("INITIALIZING VIDEO ENGINIE")
 engine = VideoSearchEngine()
-engine.process_all_videos("input")
+engine.search_engine.delete_collection("portal_db")
+engine.search_engine.create_collection("portal_db")
+engine.process_all_files("input")
 
 print(engine.search_engine.collection.get())
 

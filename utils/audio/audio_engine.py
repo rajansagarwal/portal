@@ -4,7 +4,7 @@ from faster_whisper import WhisperModel
 
 class AudioEngine:
     def __init__(self):
-        self.model = WhisperModel("small.en")
+        self.model = WhisperModel("medium.en")
         
     def transcribe(self, audio_path) -> str:
         full_text = ""
