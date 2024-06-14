@@ -6,7 +6,7 @@ class EmbeddingsEngine:
     #model_name: "default" gives the default engine
     def __init__(self, model_name: str):
         if (model_name == "default"):
-            self.model =  SentenceTransformer('Alibaba-NLP/gte-large-en-v1.5', trust_remote_code=True)
+            self.model =  SentenceTransformer('nomic-ai/nomic-embed-text-v1', trust_remote_code=True)
         else:
             self.model =  SentenceTransformer(model_name, trust_remote_code=True)
 

@@ -1,56 +1,63 @@
+import chromadb
 import sys
 import os
+import time
 import numpy as np
-from annoy import AnnoyIndex
+from chromadb.config import DEFAULT_TENANT, DEFAULT_DATABASE, Settings
 
-# Append the root directory of your project to sys.path
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.append(root_dir)
 
 from utils.embeddings.embeddings_engine import EmbeddingsEngine
+from utils.reranking.reranker import Reranker
 
 class SearchEngine:
-    def __init__ (self, data: list[str]):
+
+    def __init__(self, collection_name="portal_db"):
         self.embeddings_model = EmbeddingsEngine("default")
-        if len(data) != 0:
-            self.data = self.embeddings_model.embed(data)
-            self.text_data = data
+        self.client = chromadb.PersistentClient(
+            settings=Settings(),
+            tenant=DEFAULT_TENANT,
+            database=DEFAULT_DATABASE,
+        )
+        try:
+            self.collection = self.client.get_collection(name=collection_name)
+        except:
+            self.create_collection(collection_name)
 
-    def add_data (self, new_data: list[str]) -> None:
-        if len(self.data) != 0:
-            self.data = np.concatenate([self.data, self.embeddings_model.embed(new_data)], axis=0)
-            self.text_data += new_data
-        else:
-            self.data = self.embeddings_model.embed(new_data)
-            self.text_data = new_data
+    def create_collection(self, collection_name:str):
+        self.collection = self.client.create_collection(name=collection_name, metadata={"hnsw:space": "cosine"})
+
+    def add(self, concatenated, timestamp, filepath):
+        embedding = self.embeddings_model.embed(concatenated).tolist()
+        id_string = f"{filepath}::{timestamp}"
+        self.collection.add(
+            documents=[concatenated],
+            embeddings=[embedding],
+            ids=[f"{id_string}"],
+            metadatas=[{"filepath": filepath}]
+        )
     
-    def query(self, query_text: str) -> list[int]:
-        query_vector = self.embeddings_model.embed([query_text])[0]
+    def query(self, query_string, query_type):
+        embedding = self.embeddings_model.embed(query_string).tolist()
 
-        num_features = self.data.shape[1]
-        annoy_index = AnnoyIndex(num_features, 'angular')
+        if query_type != "":
+            results = self.collection.query(
+                query_embeddings=[embedding],
+                include=["documents", "metadatas"],
+                n_results=3
+            )
+        cleaned_results = {}
+        for i in range (len(results["ids"][0])):
+            cleaned_results[results["ids"][0][i]] = results["documents"][0][i] 
+        return cleaned_results
 
-        for index, data_vector in enumerate(self.data):
-            annoy_index.add_item(index, data_vector)
+    def delete_collection(self, collection_name):
+        self.client.delete_collection(name=collection_name)
+        print("Deleted Collection Successfully")
 
-        annoy_index.build(10)
-        nearest_neighbors = annoy_index.get_nns_by_vector(query_vector, 100, include_distances=False)
-        
-        print(nearest_neighbors)
+    def exists_in_collection(self, video_id):
+        document = self.collection.get(ids=[video_id])
+        print(document)
+        return document.get('documents') is not []
 
-        return nearest_neighbors
-    
-    def query_text_results (self, results: list[int]) -> list[str]:
-        text_results = []
-        for item in results:
-            text_results.append(self.text_data[item])
-        return text_results
-
-    
-# Example Usage
-
-# search_engine = SearchEngine(["hello world", "hello rajan"])
-# print(search_engine.data)
-# search_engine.add_data(["Cats and dogs are super cool", "Rajan is the coolest guy"])
-# nearest_neighbours = search_engine.query("rajan is super cool")
-# print(search_engine.query_text_results(nearest_neighbours))

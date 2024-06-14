@@ -1,7 +1,6 @@
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import pandas as pd
-
 import os
 import cv2
 from moviepy.editor import VideoFileClip
@@ -11,9 +10,9 @@ from utils.audio.audio_engine import AudioEngine
 from utils.video.photo_engine import PhotoEngine
 from utils.embeddings.embeddings_engine import EmbeddingsEngine
 from utils.clustering.clustering_engine import ClusteringEngine
-# from utils.search.search_engine import SearchEngine
 from utils.summarization.summary_engine import SummaryEngine
-from utils.search.chroma_search_engine import ChromaSearchEngine
+from utils.search.search_engine import SearchEngine
+from PIL import Image
 
 class VideoSearchEngine:
     def __init__(self):
@@ -23,14 +22,10 @@ class VideoSearchEngine:
         self.photo_engine = PhotoEngine("default")
         print("Initializing Embeddings Engine")
         self.embeddings_engine = EmbeddingsEngine("default")
-        # print("Initializing Search Engine")
-        # self.search_engine = SearchEngine(data=[])
         print("Initializing Summary Engine")
         self.summary_engine = SummaryEngine()
-        print("Initializing Clustering Engine")
-        self.classifier = ClusteringEngine(embeddings_engine=self.embeddings_engine, threshold=0.75)
         print("Initializing Chroma Search Engine")
-        self.chroma_search_engine = ChromaSearchEngine()
+        self.search_engine = SearchEngine()
 
         self.video_fragments_dir = "store"
         os.makedirs(self.video_fragments_dir, exist_ok=True)
@@ -63,108 +58,48 @@ class VideoSearchEngine:
         cap.release()
         return frames
 
-    def compress_video(self, input_path, output_path, crf=31, overwrite=False):
-        if not overwrite and os.path.exists(output_path):
-            print(f"Skipping compression for {output_path} as it already exists.")
-            return
-        
-        command = f"ffmpeg -i {input_path} -vcodec libx264 -crf {crf} {output_path}"
-        os.system(command)
-        print(f"Compressed and saved video to {output_path}.")
-
     def process_video(self, video_path):
-        print(self.existing_videos)
-        video_id = os.path.basename(video_path)
-        compressed_video_path = os.path.join("videos", video_id.replace(".mp4", "_compressed.mp4"))
-        self.compress_video(video_path, compressed_video_path)
-
-        video_clip = VideoFileClip(compressed_video_path)
+        video_clip = VideoFileClip(video_path)
         fps = video_clip.fps
-
-        frames = self.extract_frames(compressed_video_path, self.interval, fps)
+        frames = self.extract_frames(video_path, self.interval, fps)
 
         for seconds, frame in frames:
-            print(f"PROCESSING {video_path} FRAME at {seconds} seconds")
-            description = self.photo_engine.describe_image(frame)
+            video_id = f"{video_path}::{seconds}"
+            if self.search_engine.exists_in_collection(video_id):
+                print(f"Skipping already indexed frame: {video_id}")
+                continue
 
+            description = self.photo_engine.describe_image(frame)
             start_time = seconds
             duration = self.interval
             end_time = min(start_time + duration, video_clip.duration)
 
             if end_time > start_time:
-                fragment_filename = os.path.join(self.video_fragments_dir, f"{os.path.basename(video_path)}_{seconds}.mp4")
                 video_fragment = video_clip.subclip(start_time, end_time)
-                video_fragment.write_videofile(fragment_filename, codec="libx264")
-
-                with tempfile.NamedTemporaryFile(suffix='.wav', delete=True) as temp_audio_file:
+                with tempfile.NamedTemporaryFile(delete=True, suffix='.wav') as temp_audio_file:
                     video_fragment.audio.write_audiofile(temp_audio_file.name)
                     transcription = self.audio_engine.transcribe(temp_audio_file.name)
                     summary = self.summary_engine.summarize(transcription)
 
-                self.save_to_csv(compressed_video_path, [seconds], [description], [transcription], [fragment_filename], [summary[0]['summary_text']])
-        
-    def process_all_videos(self, directory_path):
-        for filename in os.listdir(directory_path):
-            if filename.endswith(".mp4"):
-                video_path = os.path.join(directory_path, filename)
-                if f"""videos/{filename.replace(".mp4", "_compressed.mp4")}""" not in self.existing_videos:
-                    self.process_video(video_path)
+                concatenated_description = f"{description} {summary}"
+                self.search_engine.add(concatenated_description, seconds, video_path)
+
+    def process_image(self, image_path):
+        with Image.open(image_path) as img:
+            description = self.photo_engine.describe_image(img)
+            self.search_engine.add(description, 0, image_path)
+
+    def process_all_files(self, directory_path):
+        for root, dirs, files in os.walk(directory_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                if file_path.endswith(".mp4"):
+                    self.process_video(file_path)
+                elif file_path.lower().endswith((".jpg", ".jpeg", ".png")):
+                    self.process_image(file_path)
                 else:
-                    print(f"Skipping already processed video: {video_path}")
-                    return
+                    print(f"Skipping unsupported file type: {file_path}")
 
-    def save_to_csv(self, video_id, frame_indices, frame_descriptions, audio_transcriptions, video_filenames, summaries):
-        df = pd.DataFrame({
-            'Video ID': [video_id] * len(frame_indices),
-            'Frame Index': frame_indices,
-            'Frame Description': frame_descriptions,
-            'Audio Transcription': audio_transcriptions,
-            'Video Filename': video_filenames,
-            'Summary': summaries
-        })
-        if os.path.exists(self.csv_filename):
-            df.to_csv(self.csv_filename, mode='a', header=False, index=False)
-        else:
-            df.to_csv(self.csv_filename, index=False)
-        print(f"Data appended to CSV for {video_id}.")
-    
-    def search(self, query_text, user):
-        
-        top_visual_results = self.chroma_search_engine.query_data_by_type(query_text, user, "frame")
-        top_audio_results = self.chroma_search_engine.query_data_by_type(query_text, user, "audio")["documents"][0]
-        top_summary_results = self.chroma_search_engine.query_data_by_type(query_text, user, "summary")["documents"][0]
-        
-        return top_visual_results, top_audio_results, top_summary_results
-
-    def load_csv_data (self):
-        df = pd.read_csv(self.csv_filename)
-        #df.drop(["Frame Index", "Video ID"])
-        print("Creating client")
-        self.chroma_search_engine.create_client()
-        print("Creating collection")
-        self.chroma_search_engine.create_collection("new_collection")
-        dictionaries = []
-        for index, row in df.iterrows():
-            dictionary = {}
-            dictionary["audio_description"] = row["Audio Transcription"] 
-            dictionary["frame_description"] = row["Frame Description"]
-            dictionary["summary"] = row["Summary"]
-            dictionary["id"] = row["Video Filename"]
-            dictionaries.append(dictionary)
-        self.chroma_search_engine.add_data(dictionaries)
-        #print(dictionaries)
-        
-engine = VideoSearchEngine()
-engine.load_csv_data()
-query = "knowledge graphs"
-visual_results, audio_results, summary_results = engine.search(query)
-print (visual_results)
-
-# print("Visual Results:")
-# for result in visual_results:
-#     print(result)
-#     print()
-
-# engine=VideoSearchEngine()
-# engine.load_csv_data()
-# print(engine.search("connectsci"))
+    def search(self, query_text):
+        results = self.search_engine.query(query_text, "text")
+        return results
