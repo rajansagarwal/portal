@@ -1,3 +1,3 @@
 ## Portal
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/Vmupugz2M1s?si=p1-jtuyomsc2FReT" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+Portal is a self-hosted multimodal personal search engine that can answer questions about files, messages, web history and footage!
