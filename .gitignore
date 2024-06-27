@@ -9,7 +9,6 @@ __pycache__/
 *.jpg
 
 input/
+tests/
 
 chroma
-
-test/
