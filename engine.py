@@ -5,6 +5,7 @@ import os
 import cv2
 from moviepy.editor import VideoFileClip
 import tempfile
+from PyPDF2 import PdfReader
 
 from utils.audio.audio_engine import AudioEngine
 from utils.video.photo_engine import PhotoEngine
@@ -88,6 +89,26 @@ class VideoSearchEngine:
         with Image.open(image_path) as img:
             description = self.photo_engine.describe_image(img)
             self.search_engine.add(description, 0, image_path)
+    
+    def process_text(self, text_path):
+        with open(text_path, "r") as f:
+            text = f.read()
+
+        text_words = text.split()
+        text_groups = [text_words[i:i+100] for i in range(0, len(text_words), 100)]
+
+        for idx, group in enumerate(text_groups):
+            group_text = ' '.join(group)
+            print(group_text)
+            if group_text:
+                self.search_engine.add(group_text, idx * 100, text_path)
+    
+    def process_pdf(self, pdf_path):
+        pdf = PdfReader(pdf_path)
+
+        for idx, page in enumerate(pdf.pages):
+            text = page.extract_text()
+            self.search_engine.add(text, idx, pdf_path)
 
     def process_all_files(self, directory_path):
         for root, dirs, files in os.walk(directory_path):
@@ -95,11 +116,14 @@ class VideoSearchEngine:
                 file_path = os.path.join(root, file)
                 if file_path.endswith(".mp4"):
                     self.process_video(file_path)
-                elif file_path.lower().endswith((".jpg", ".jpeg", ".png")):
+                elif file_path.endswith((".jpg", ".jpeg", ".png")):
                     self.process_image(file_path)
+                elif file_path.endswith((".md", ".txt")):
+                    self.process_text(file_path)
+                elif file_path.endswith(".pdf"):
+                    self.process_pdf(file_path)
                 else:
                     print(f"Skipping unsupported file type: {file_path}")
 
-    def search(self, query_text):
-        results = self.search_engine.query(query_text, "text")
-        return results
+engine = VideoSearchEngine()
+engine.process_all_files("input")

@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       {
         role: "system",
         content:
-          "Please answer the question using the content, and cite it at the end of the sentence in which it is used with the entirety: [citation number in increasing order from 1](reference file id). You are a helpful assistant with access to key parts and references into my life. Make inferences if needed. Always add a lot of detail and use at least one source. Do NOT add a list of references at the end.",
+          "Please directly answer the question concisely, unless specified by user, using the content, and cite it at the end of the sentence using the format '[citation number in increasing order from 1](reference file id)'. Do not go on tangents. You are a helpful assistant with access to key parts and references into my life. Make inferences if needed. Always add a lot of detail and use at least one source. Do NOT add a list of references at the end.",
       },
       { role: "user", content: userMessage },
     ],

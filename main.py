@@ -1,25 +1,23 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from video_engine import VideoSearchEngine
+from utils.search.search_engine import SearchEngine
 
 print("STARTING UP")
 app = Flask(__name__)
 print("INITIALIZING CORS")
 CORS(app)
-print("INITIALIZING VIDEO ENGINIE")
-engine = VideoSearchEngine()
-engine.search_engine.delete_collection("portal_db")
-engine.search_engine.create_collection("portal_db")
-engine.process_all_files("input")
+print("INITIALIZING SEARCH ENGINIE")
+engine = SearchEngine()
 
-print(engine.search_engine.collection.get())
+print("THIS IS THE COLLECION")
+print(engine.collection.get())
 
 @app.route('/search', methods=['POST', 'GET'])
 def search():
     try:
         query = request.json['query']
         print(f"Querying {query}")
-        results = engine.search(query)
+        results = engine.query(query, "text")
         return jsonify({
             'results': results
         })
