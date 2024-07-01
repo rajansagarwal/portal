@@ -4,6 +4,7 @@ Portal is a self-hosted multimodal personal search engine that can answer questi
 
 
 November, 2023
+
 [Portal Demo Video Socratica Symposium](https://www.youtube.com/watch?v=Vmupugz2M1s)
 
 Wednesday, June 26:
