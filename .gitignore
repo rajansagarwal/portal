@@ -12,3 +12,5 @@ input/
 tests/
 
 chroma
+
+node_modules/

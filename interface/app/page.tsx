@@ -17,7 +17,7 @@ export default function Home() {
 
       <form onSubmit={handleSubmit}>
         <input
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border rounded"
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border rounded bg-black text-white"
           value={input}
           placeholder="Search through your memories"
           onChange={handleInputChange}

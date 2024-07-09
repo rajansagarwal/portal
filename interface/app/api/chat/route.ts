@@ -1,6 +1,7 @@
 import { openai } from "@ai-sdk/openai";
+import { chromeai } from "chrome-ai";
 import { mistral } from "@ai-sdk/mistral";
-import { streamText } from "ai";
+import { streamText, generateText } from "ai";
 import fetch from "node-fetch";
 
 export async function POST(req: Request) {
@@ -26,7 +27,6 @@ export async function POST(req: Request) {
     content: `Filename: ${filename} Content: ${summary}}`,
   }));
 
-  // Prepare prompt for AI to use context in its answer
   const prompt = {
     model: openai("gpt-3.5-turbo"),
     messages: [
@@ -41,8 +41,12 @@ export async function POST(req: Request) {
     ],
   };
 
-  // Generating AI stream response
-  const result = await streamText(prompt);
+  // const { text } = await streamText({
+  //   model: chromeai(),
+  //   prompt: 'Who are you?',
+  // });
 
+  // // Generating AI stream response
+  const result = await streamText(prompt);
   return result.toAIStreamResponse();
 }
